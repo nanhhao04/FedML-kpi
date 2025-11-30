@@ -1,0 +1,17 @@
+# config.yml
+federated:
+  rounds: 150
+  clients: 3
+model:
+  type: lstm  # lstm | ae_lstm | iforest_lstm | vae_lstm
+  window_len: 6
+  overlap: 0.5
+
+
+training:
+  batch_size: 32
+  lr: 0.001
+
+paths:
+  data_dir: data
+  output_dir: outputs

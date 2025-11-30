@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+service FederationService {
+  // Client đăng ký và nhận global model lần đầu
+  rpc JoinFederation (JoinRequest) returns (WeightsResponse);
+
+  rpc SendLocalUpdate (LocalUpdateRequest) returns (WeightsResponse);
+}
+
+// Chứa thông tin về Client khi tham gia FL
+message JoinRequest {
+    int32 client_id = 1;
+    int32 num_samples = 2; // Số lượng mẫu dữ liệu của client
+}
+
+// Client gửi kết quả sau khi huấn luyện cục bộ
+message LocalUpdateRequest {
+    int32 client_id = 1;
+    // Dữ liệu trọng số được serialize thành bytes
+    bytes serialized_weights = 2;
+    int32 num_samples = 3;
+
+    float train_loss = 4; // Giá trị Loss function cuối cùng
+    float train_mae = 5;  // Mean Absolute Error
+    float train_mse = 6;  // Mean Squared Error
+}
+
+
+message WeightsResponse {
+    bytes serialized_weights = 1;
+    int32 round_id = 2;
+    bool is_final = 3; // True nếu vòng FL đã kết thúc
+    bool wait_join = 4; // True nếu server chưa đủ client để bắt đầu
+}

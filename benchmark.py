@@ -39,16 +39,14 @@ def run_benchmark(client_id, global_weights_path):
 
     global_model = client.build_model()
     try:
-        # PyTorch >= 2.1
         g_weights = torch.load(global_weights_path, map_location="cpu", weights_only=False)
     except TypeError:
-        # PyTorch cũ hơn (không có weights_only)
         g_weights = torch.load(global_weights_path, map_location="cpu")
 
     global_model.load_state_dict(g_weights)
     global_model.eval()
 
-    # ----- Train LOCAL model -----
+    # Train local model
     local_model = client.build_model()
     epochs = cfg["federated"]["rounds"]
 
@@ -64,19 +62,14 @@ def run_benchmark(client_id, global_weights_path):
             "mse": met["train_mse"]
         })
 
-    # ----- Evaluate Local vs Global -----
+    # Evaluate Local vs Global
     metrics_local  = client.compute_metrics(local_model,  X_test, X_train)
     metrics_global = client.compute_metrics(global_model, X_test, X_train)
 
     df_global = load_global_logs(client_id)
 
-    # ===========================
-    #       PLOT
-    # ===========================
-
+# plot
     plt.figure(figsize=(16, 8))
-
-    # ==== subplot 1: Training curves ====
     ax1 = plt.subplot(1, 2, 1)
 
     e = [x["epoch"] for x in local_hist]
@@ -98,9 +91,7 @@ def run_benchmark(client_id, global_weights_path):
     ax1.grid(True, alpha=0.3)
     ax1.legend()
 
-    # ==== subplot 2: Compare Local vs Global =====
     ax2 = plt.subplot(1, 2, 2)
-
     labels = ["MAE", "MSE"]
     local_vals = [metrics_local["mae"], metrics_local["mse"]]
     global_vals = [metrics_global["mae"], metrics_global["mse"]]
@@ -126,16 +117,13 @@ def run_benchmark(client_id, global_weights_path):
 
     print(" Saved figure:", out_all)
 
-    # ===========================
-    #       SUMMARY
-    # ===========================
 
-    print("\n===== RESULT SUMMARY =====")
+    print("\nRESULT SUMMARY")
     print(f"Local Test MAE:   {metrics_local['mae']:.6f}")
     print(f"Global Test MAE:  {metrics_global['mae']:.6f}")
     print(f"Local Test MSE:   {metrics_local['mse']:.6f}")
     print(f"Global Test MSE:  {metrics_global['mse']:.6f}")
-    print("=========================\n")
+    print("\n")
 
 
 if __name__ == "__main__":

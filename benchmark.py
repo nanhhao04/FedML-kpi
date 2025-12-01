@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-from fedml_logic import FedLocalTrain
+from fedml_logic import FedLocalTrain, compute_loss
 
 cfg = yaml.safe_load(open("config.yml", "r"))
 
@@ -36,12 +36,19 @@ def run_benchmark(client_id, global_weights_path):
 
     X_train, X_val, X_test = client.split_data()
 
-    # Load global model
-    global_model = client.build_model()
-    g_weights = torch.load(global_weights_path, map_location="cpu", weights_only=False)
-    global_model.load_state_dict(g_weights)
 
-    # Train local model
+    global_model = client.build_model()
+    try:
+        # PyTorch >= 2.1
+        g_weights = torch.load(global_weights_path, map_location="cpu", weights_only=False)
+    except TypeError:
+        # PyTorch cũ hơn (không có weights_only)
+        g_weights = torch.load(global_weights_path, map_location="cpu")
+
+    global_model.load_state_dict(g_weights)
+    global_model.eval()
+
+    # ----- Train LOCAL model -----
     local_model = client.build_model()
     epochs = cfg["federated"]["rounds"]
 
@@ -57,20 +64,21 @@ def run_benchmark(client_id, global_weights_path):
             "mse": met["train_mse"]
         })
 
-    # Evaluate
-    metrics_local = client.compute_metrics(local_model, X_test, X_train)
+    # ----- Evaluate Local vs Global -----
+    metrics_local  = client.compute_metrics(local_model,  X_test, X_train)
     metrics_global = client.compute_metrics(global_model, X_test, X_train)
 
     df_global = load_global_logs(client_id)
 
-# Plot
+    # ===========================
+    #       PLOT
+    # ===========================
 
     plt.figure(figsize=(16, 8))
 
-    # subplot1
+    # ==== subplot 1: Training curves ====
     ax1 = plt.subplot(1, 2, 1)
 
-    # Local curves
     e = [x["epoch"] for x in local_hist]
     mae_local = [x["mae"] for x in local_hist]
     mse_local = [x["mse"] for x in local_hist]
@@ -78,12 +86,11 @@ def run_benchmark(client_id, global_weights_path):
     ax1.plot(e, mae_local, color="blue", label="Local MAE (train)")
     ax1.plot(e, mse_local, color="green", label="Local MSE (train)")
 
-    # Global FL curves
     if df_global is not None:
-        ax1.plot(df_global["round"], df_global["mae"],
-                 linestyle="--", color="red", label="Global MAE (FL)")
-        ax1.plot(df_global["round"], df_global["mse"],
-                 linestyle="--", color="orange", label="Global MSE (FL)")
+        ax1.plot(df_global["round"], df_global["mae"], linestyle="--",
+                 color="red", label="Global MAE (FL)")
+        ax1.plot(df_global["round"], df_global["mse"], linestyle="--",
+                 color="orange", label="Global MSE (FL)")
 
     ax1.set_xlabel("Epoch / Round")
     ax1.set_ylabel("Value")
@@ -91,7 +98,7 @@ def run_benchmark(client_id, global_weights_path):
     ax1.grid(True, alpha=0.3)
     ax1.legend()
 
-    # SUBPLOT 2
+    # ==== subplot 2: Compare Local vs Global =====
     ax2 = plt.subplot(1, 2, 2)
 
     labels = ["MAE", "MSE"]
@@ -101,7 +108,7 @@ def run_benchmark(client_id, global_weights_path):
     x = np.arange(len(labels))
     w = 0.35
 
-    ax2.bar(x - w / 2, local_vals, w, label="Local", color="#4A90E2")
+    ax2.bar(x - w / 2, local_vals,  w, label="Local",  color="#4A90E2")
     ax2.bar(x + w / 2, global_vals, w, label="Global", color="#E24A4A")
 
     ax2.set_xticks(x)
@@ -111,7 +118,7 @@ def run_benchmark(client_id, global_weights_path):
     ax2.legend()
     ax2.grid(axis="y", alpha=0.3)
 
-    # SAVE FILE
+    # Save
     plt.tight_layout()
     out_all = f"outputs/benchmark_client_{client_id}_global_local.png"
     plt.savefig(out_all, dpi=150)
@@ -119,7 +126,10 @@ def run_benchmark(client_id, global_weights_path):
 
     print(" Saved figure:", out_all)
 
-# Summary
+    # ===========================
+    #       SUMMARY
+    # ===========================
+
     print("\n===== RESULT SUMMARY =====")
     print(f"Local Test MAE:   {metrics_local['mae']:.6f}")
     print(f"Global Test MAE:  {metrics_global['mae']:.6f}")

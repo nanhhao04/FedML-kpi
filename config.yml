@@ -1,6 +1,6 @@
 # config.yml
 federated:
-  rounds: 150
+  rounds: 100
   clients: 3
 model:
   type: lstm  # lstm | ae_lstm | iforest_lstm | vae_lstm

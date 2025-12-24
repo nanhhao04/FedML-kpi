@@ -3,3 +3,6 @@ outputs
 data
 
 outputs_iid_full
+
+src/wandb
+

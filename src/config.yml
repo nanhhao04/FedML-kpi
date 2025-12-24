@@ -1,0 +1,19 @@
+# config.yml
+federated:
+  rounds: 200
+  clients: 3
+  type: FedBN  #FedAvg / FedBN / FedProx
+model:
+  type: ae_cnn  # lstm | ae_lstm | iforest_lstm | vae_lstm | vae | ae_cnn
+  window_len: 12
+  overlap: 0.5
+
+
+training:
+  batch_size: 64
+  lr: 0.001
+  local_epochs: 1
+
+paths:
+  data_dir: data
+  output_dir: outputs

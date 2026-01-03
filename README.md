@@ -22,5 +22,10 @@ python client.py --id 3
 ```bash
 python ./run_centralized.py
 ```
+Hoặc có thể chạy bằng docker
+
+```bash
+docker-compose up --build
+```
 
 

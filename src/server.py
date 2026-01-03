@@ -258,12 +258,11 @@ def serve():
         else:
         '''
         print("Running Full Evaluation on Test Set...")
-        data_path = "../data/data_hl19_full.csv"
+        ######################################## Eval trên dữ liệu giả lập hoặc real #########################
+        data_path = "../data/data_hl19_real.csv"
         model_path = "../outputs/global_model_final.pth"
-
         mse, mae = get_metric_eval(model_path, data_path, cfg, n_rounds=10)
         print(f"Full Eval Result : MAE: {mae:.4f} | MSE: {mse:.4f}")
-
         # Log WandB kết quả cuối cùng
         if wandb.run is not None:
             wandb.log({"Final_MAE": mae, "Final_MSE": mse})
@@ -277,7 +276,7 @@ def serve():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run_name', type=str, default=f"{cfg['federated']['type']}_{cfg['model']['type']}",
+    parser.add_argument('--run_name', type=str, default=f"{cfg['federated']['type']}_{cfg['model']['type']}_real",
                         help='Tên định danh chung cho cả Server và Client')
     parser.add_argument('--note', type=str, default='', help='Ghi chú lần chạy')
     args = parser.parse_args()

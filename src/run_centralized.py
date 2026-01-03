@@ -16,11 +16,15 @@ from utils import get_metric_tail, get_metric_eval
 import time
 import argparse
 import wandb
+from preprocess import load_and_scale_data, process_data_pipeline
 
 # Load config
 cfg = yaml.safe_load(open("config.yml", "r"))
 FULL_DATA_PATH = "../data/data_hl19_full.csv"
-#FULL_DATA_PATH = "../data/data_hl19_real.csv"
+DATA_PATH_REAL = "../data/data_hl19_real.csv"
+
+
+
 
 OUTPUT_DIR = "../outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -114,6 +118,7 @@ def run_centralized_training(cfg, args):
 
     # Chuẩn bị Tensor
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32).to(device)
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32).to(device)
 
     batch_size = cfg['training']['batch_size']
@@ -145,6 +150,16 @@ def run_centralized_training(cfg, args):
 
 
     # B. GLOBAL EVALUATION PHASE (Mini-batch Eval)
+        #
+        df_real = load_and_scale_data(DATA_PATH_REAL, node_id=None)
+        window_len = cfg["model"]["window_len"]
+        overlap_rate = cfg["model"]["overlap"]
+        _, X_val_real, _ = process_data_pipeline(df_real, window_len, overlap_rate)
+        X_val_real_tensor = torch.tensor(X_val_real, dtype=torch.float32).to(device)
+        eval_dataset_real = TensorDataset(X_val_real_tensor)
+        eval_loader_real = DataLoader(eval_dataset_real, batch_size=batch_size, shuffle=True)
+
+
         model.eval()
         eval_batch_size = cfg["training"]["batch_size"]
 
@@ -157,7 +172,8 @@ def run_centralized_training(cfg, args):
         total_samples = 0
 
         with torch.no_grad():
-            for batch in test_loader:
+            #for batch in test_loader: (EVAL TRÊN GIẢ LẬP)
+            for batch in eval_loader_real: #(EVAL TRÊN DATA REAL)
                 xb = batch[0]
 
                 loss_val, mse, mae, _ = compute_loss(model, xb, beta=beta)
@@ -205,7 +221,7 @@ def run_centralized_training(cfg, args):
     print(f"Đã lưu model tại: {model_path}")
     print(f"Đã lưu metrics tại: {csv_path}")
 
-    final_mse, final_mae = get_metric_eval(model_path, FULL_DATA_PATH, cfg, n_rounds = 10 )
+    final_mse, final_mae = get_metric_eval(model_path, DATA_PATH_REAL, cfg, n_rounds = 10 )
     print(f"Metric: MAE: {final_mae:4f} | MSE: {final_mse:.4f}")
     if wandb.run is not None:
         wandb.log({
@@ -279,7 +295,7 @@ def plot_comparison():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run_name', type=str, default=f"RunCentralize_{cfg['model']['type']}",
+    parser.add_argument('--run_name', type=str, default=f"RunCentralize_{cfg['model']['type']}_real",
                         help='Tên định danh chung cho cả Server và Client')
     parser.add_argument('--note', type=str, default='', help='Ghi chú lần chạy')
     args = parser.parse_args()

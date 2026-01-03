@@ -439,9 +439,7 @@ class FedServerLogic:
         self.window_len = cfg["model"]["window_len"]
         self.overlap = cfg["model"]["overlap"]
         self.federated_type = cfg["federated"]["type"]
-
-        self.full_data_path = "../data/data_hl19_full.csv"
-        #self.full_data_path = "../data/data_hl19_real.csv"
+        self.full_data_path = "../data/data_hl19_real.csv" ###self.full_data_path = "../data/data_hl19_full.csv" (full: giả lập, real)
 
         print(f"[Serverlogic] Đang load Full Dataset từ: {self.full_data_path}")
 
@@ -566,7 +564,7 @@ class FedServerLogic:
             "mae": total_mae
         }
 '''
-    def evaluate_global(self, X_eval=None, X_val=None):
+    def evaluate_global(self, X_val=None, X_test=None):
         if X_val is None:
             X_val = self.server_eval_data
         if X_val is None or len(X_val) == 0:

@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # SERVER SERVICE
+  server:
+    build: .
+    container_name: fed_server
+    command: python server.py
+    ports:
+      - "50051:50051"  # Mở cổng gRPC
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./config.yml:/app/src/config.yml
+    environment:
+      - PYTHONUNBUFFERED=1   # Để log hiện ngay lập tức
+      #- WANDB_API_KEY =
+  # CLIENT 1
+  client_1:
+    build: .
+    container_name: fed_client_1
+    command: python client.py --client_id 1
+    depends_on:
+      - server
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./config.yml:/app/src/config.yml
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # CLIENT 2
+  client_2:
+    build: .
+    container_name: fed_client_2
+    command: python client.py --client_id 2
+    depends_on:
+      - server
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./config.yml:/app/src/config.yml
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # CLIENT 3
+  client_3:
+    build: .
+    container_name: fed_client_3
+    command: python client.py --client_id 3
+    depends_on:
+      - server
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./config.yml:/app/src/config.yml
+    environment:
+      - PYTHONUNBUFFERED=1
